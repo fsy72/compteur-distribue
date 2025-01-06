@@ -1,61 +1,43 @@
 #include "common.h"
 
 int main() {
-    int server_fd, client_socket;
-    struct sockaddr_in address;
-    int opt = 1;
-    int addrlen = sizeof(address);
-    int counter = 0;
     
-    // Create socket
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        perror("socket failed");
-        exit(EXIT_FAILURE);
+    struct sockaddr_in addrserveur, addrclient;
+    int socketserveur = socket(AF_INET, SOCK_STREAM, 0);
+
+    memset(&addrserveur, 0, sizeof(struct sockaddr_in));
+    addrserveur.sin_family = AF_INET;
+    addrserveur.sin_port = htons(PORT);
+    addrserveur.sin_addr.s_addr = INADDR_ANY;
+
+    int resultat = bind(socketserveur, (struct sockaddr *)&addrserveur, sizeof(addrserveur));
+    if(resultat == -1){
+        perror("failed");
+        exit(-1);
     }
-    
-    // Set socket options
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
-        perror("setsockopt");
-        exit(EXIT_FAILURE);
+    if(listen(socketserveur, 1) == -1){
+        perror("failed");
+        exit(-1);
     }
-    
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
-    
-    // Bind
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
-        perror("bind failed");
-        exit(EXIT_FAILURE);
+
+    printf("Server lit sur le port %d...\n", PORT);
+
+    int taille = sizeof(addrserveur);
+    int acceptClient = accept(socketserveur, (struct sockaddr *)&addrserveur, &taille);
+    if(acceptClient == -1){
+        perror("failed");
+        exit(-1);
     }
-    
-    // Listen
-    if (listen(server_fd, 1) < 0) {
-        perror("listen");
-        exit(EXIT_FAILURE);
-    }
-    
-    printf("Server listening on port %d...\n", PORT);
-    
-    // Accept connection
-    if ((client_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
-        perror("accept");
-        exit(EXIT_FAILURE);
-    }
-    
+
+    int compteur = 0;
     while(1) {
-        // Send counter
-        send(client_socket, &counter, sizeof(counter), 0);
-        printf("Server sent: %d\n", counter);
-        
-        // Receive updated counter
-        read(client_socket, &counter, sizeof(counter));
-        printf("Server received: %d\n", counter);
-        
-        // Increment counter
-        counter++;
+        send(acceptClient, &compteur, sizeof(compteur), 0);
+        // printf("Serveur envoie %d\n", compteur);
+        recv(acceptClient, &compteur, sizeof(compteur), 0);
+        printf("Serveur reçoit %d\n", compteur);
+        compteur++;
         sleep(1);
     }
-    
+
     return 0;
 }

@@ -1,44 +1,30 @@
 #include "common.h"
 
 int main() {
-    int sock = 0;
-    struct sockaddr_in serv_addr;
-    int counter;
     
-    // Create socket
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        printf("\n Socket creation error \n");
-        return -1;
+    struct sockaddr_in addrserveur;
+    int socketclient = socket(AF_INET, SOCK_STREAM, 0);
+
+    memset(&addrserveur, 0, sizeof(struct sockaddr_in));
+    addrserveur.sin_family = AF_INET;
+    addrserveur.sin_port = htons(PORT);
+    addrserveur.sin_addr.s_addr = inet_addr("172.18.99.149");
+
+    int connecter = connect(socketclient, (struct sockaddr *)&addrserveur, sizeof(addrserveur));
+    if(connecter == -1){
+        perror("failed");
+        exit(-1);
     }
-    
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
-    
-    // Convert IPv4 address from text to binary
-    if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
-        printf("\nInvalid address/ Address not supported \n");
-        return -1;
-    }
-    
-    // Connect to server
-    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        printf("\nConnection Failed \n");
-        return -1;
-    }
-    
+
+    int compteur;
     while(1) {
-        // Receive counter
-        read(sock, &counter, sizeof(counter));
-        printf("Client received: %d\n", counter);
-        
-        // Increment counter
-        counter++;
+        recv(socketclient, &compteur, sizeof(compteur), 0);
+        printf("Client reçoit %d\n", compteur);
+        compteur++;
         sleep(1);
-        
-        // Send updated counter
-        send(sock, &counter, sizeof(counter), 0);
-        printf("Client sent: %d\n", counter);
+        send(socketclient, &compteur, sizeof(compteur), 0);
+        // printf("Client envoie %d\n", compteur);
     }
-    
+
     return 0;
 }
